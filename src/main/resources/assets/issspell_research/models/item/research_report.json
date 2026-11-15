@@ -1,0 +1,7 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "issspell_research:item/research_report",
+    "layer1": "issspell_research:item/research_report_overlay"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "ingredients": [
+    { "ingredient": { "item": "irons_spellbooks:arcane_essence" }, "count": 10 },
+    { "ingredient": { "item": "minecraft:paper" }, "count": 3 }
+  ]
+}

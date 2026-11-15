@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " B ",
+    "ITI",
+    "PSP"
+  ],
+  "key": {
+    "B": { "item": "minecraft:book" },
+    "I": { "item": "irons_spellbooks:arcane_ingot" },
+    "T": { "item": "minecraft:enchanting_table" },
+    "P": { "tag": "minecraft:planks" },
+    "S": { "item": "minecraft:bookshelf" }
+  },
+  "result": { "item": "issspell_research:research_table" }
+}

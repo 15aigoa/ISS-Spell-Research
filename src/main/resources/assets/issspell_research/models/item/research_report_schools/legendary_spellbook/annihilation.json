@@ -1,0 +1,6 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "issspell_research:item/research_report_schools/legendary_spellbook/annihilation"
+  }
+}
