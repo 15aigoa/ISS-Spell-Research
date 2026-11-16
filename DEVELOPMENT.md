@@ -3,7 +3,7 @@
 Technical documentation for `issspell_research` (ISS Spell Research). For an overview, see [`README.md`](README.md).
 
 - [1. Development Environment](#1-development-environment)
-- [2. Build, Run, and Test](#2-build-run-and-test)
+- [2. Build, Run, and Debug](#2-build-run-and-debug)
 - [3. Architecture and Package Layout](#3-architecture-and-package-layout)
 - [4. Feature Implementation](#4-feature-implementation)
 - [5. Mixins and External Mod Integration](#5-mixins-and-external-mod-integration)
@@ -73,34 +73,30 @@ Add `libs/` to `.gitignore`.
 
 ---
 
-## 2. Build, Run, and Test
+## 2. Build, Run, and Debug
 
 ```
-gradlew build        # compile, run the annotation processor (refmap), reobfuscate -> build/libs/*.jar
-gradlew runClient    # development client
+gradlew build        # compile, run the Mixin annotation processor (refmap), reobfuscate -> build/libs/*.jar
+gradlew runClient    # development client (game directory: run/)
 gradlew runServer    # development dedicated server
 ```
 
-- The game directory is `run/` (logs: `run/logs/latest.log`; generated config: `run/config/issspell_research-common.toml`).
-- After adding or changing resources, run `gradlew clean` before `runClient` if the change does not show up.
-- A successful run logs lines prefixed with `[issspell_research]`, for example:
-  - the personal-progress mode line (`個人別進行 ... 有効` = enabled / `無効` = disabled, followed by the reason),
-  - the reissue cost loading line, and the number of per-school report models found.
+- Logs: `run/logs/latest.log`. Generated config: `run/config/issspell_research-common.toml`.
+- After changing resources, run `gradlew clean` before `runClient` if the change does not appear.
+- Startup lines prefixed with `[issspell_research]` report the personal-progress mode (with the reason), the reissue cost source, and the per-school report models found.
+- Multiplayer checks use a dedicated server with `online-mode=false` and two clients under different user names (`--username`, separate game directories). Parties are created with `/ftbteams party create`.
 
-### Dev vs. production
+### Debug commands
 
-The dev environment uses Mojang names; a real pack uses SRG-named jars. Mixins that work in dev can fail in production (see [section 5](#5-mixins-and-external-mod-integration)). **Always test a built jar in a real modpack instance before release.**
+Permission level 2 (OP). Spell ids are auto-completed.
 
-### Multiplayer testing (dedicated server + several clients on one PC)
-
-1. `gradlew runServer` once; set `eula=true` in `run/eula.txt` (the server directory) and `online-mode=false` in `server.properties`.
-2. Set `[personalProgress] enabled = true` in the **server's** `config/issspell_research-common.toml` and restart (only when testing per-player progress).
-3. Start clients under different user names (for example, duplicate the IntelliJ `runClient` configuration and add program arguments `--username Dev2`; use separate game directories).
-4. Create a party with `/ftbteams party create` and invite the other player (party sync only happens inside a party).
-
-When one client hosts a LAN world, the host's config is the one that matters (the integrated server).
-
----
+| Command | Description |
+|---|---|
+| `/issresearch points get\|add\|set <player> [amount]` | inspect or change research points |
+| `/issresearch report give <player> <spell_id>` | give a research report |
+| `/issresearch reissue enable\|disable <player> <spell_id>` | toggle reissue for a spell |
+| `/issresearch schools` | list registered ISS schools (id, colour, spell count) |
+| `/issresearch sync` | sync non-research quests in online parties; prints the reason if disabled |
 
 ## 3. Architecture and Package Layout
 
@@ -332,81 +328,25 @@ There is **no migration**. Enabling the module on a world with team-keyed progre
 
 ### Version-dependent areas
 
-- Tied to **ISS 3.16.3** (Scroll Forge internals) and **FTB Quests 2001.4.22** (`detect` copy and `personal` targets). Re-check the tables in [section 5](#5-mixins-and-external-mod-integration) after any update.
+- ISS 3.16.3 (Scroll Forge internals) and FTB Quests 2001.4.22 (the `detect` copy and the `personal` targets). Re-check the tables in [section 5](#5-mixins-and-external-mod-integration) after any update.
 - Anonymous classes and private members of ISS are used directly.
 - The reissue list is a snapshot from menu-open time.
-- Only 3 research-chapter buttons are shown in the table; extra chapters are not reachable from it.
+- Only 3 research-chapter buttons are shown in the table.
 - JEI still shows the original Scroll Forge recipes.
 - GUI graphics are placeholders (flat fills).
 - The table cannot open a chapter if the pack disables the FTB Quests GUI.
 
-### Dev vs. production environment
+### Not yet verified in game
 
-Mixins resolve names differently (Mojang names in dev, SRG in production). The `@At` `remap` pitfall in section 5 was found only in a real pack, so run production tests for any Mixin change.
+- Per-player progress and party sync (needs a multiplayer test).
 
-### Implementation status
+### Dev vs. production
 
-| Feature | Status |
-|---|---|
-| Research points, points task | verified in dev |
-| Research report (item, reward, durability) | verified in dev |
-| Research table: convert, open chapter | verified in dev (12-slot layout and left tabs awaiting verification) |
-| Scroll Forge changes | verified in dev; production startup crash fixed, behaviour awaiting verification |
-| School tint / per-school models | implemented, awaiting verification |
-| Reissue tab and unlock reward | implemented, awaiting verification |
-| Per-player progress and auto sync | implemented; multiplayer verification pending |
-
----
+Mixins resolve names differently (Mojang names in dev, SRG in production). The `@At` `remap` pitfall in section 5 was found only in a real pack, so test a built jar in a real modpack after any Mixin change.
 
 ## 9. Testing
 
-### 9.1 Research points
-
-- Conversion: books with several enchantments and levels give `Σ levelBase^(level−1) × multiplier`; unenchanted books stay in the slots; 12 books convert at once; the balance display and action-bar message update.
-- Spending: a points task with value 30 and balance 20 consumes 20 (progress 20/30); after adding points, pressing again consumes only the remaining 10; insufficient balance shows the message.
-- Persistence: reload the world; balances remain.
-
-### 9.2 Reports and reissue
-
-- Reward: completing a quest in an always-invisible chapter grants the report automatically; the tooltip shows spell, school colour, and uses left.
-- Durability: five crafts consume the report; anvil / grindstone / Mending do not restore uses.
-- Reissue: `/issresearch reissue enable @s irons_spellbooks:fireball`, give the default materials, open the **Reissue** tab, search by name or school, select, and press the button. Materials are consumed and a fresh report is given. Change the cost with a data pack and `/reload`. Verify the button is disabled when materials are short.
-
-### 9.3 Scroll Forge
-
-- Normal: paper + ink + report shows only the recorded spell; crafting works; ink rarity below the spell's minimum rarity blocks it; swapping to a different report refreshes the spell list.
-- Abnormal: a school focus cannot be placed; a report with an invalid spell id yields no scroll; shift-click behaves; the focus slot is empty after the 5th craft.
-
-### 9.4 Client / server synchronisation
-
-- Dedicated server + client: point balance, reissue list, and tab behaviour match; reissue button ids map to the same spells; materials are re-validated server-side.
-- Opening the table with the quest GUI available opens the research chapter.
-
-### 9.5 Per-player progress and party sync (multiplayer)
-
-Use the setup in section 2 with `[personalProgress] enabled = true` on the server.
-
-1. Off by default: with the default config, FTB Quests behaves as usual; the log says disabled.
-2. Independence: two players outside a party complete quests separately.
-3. Sync: in a party, A completes a non-research quest and B receives it on the next tick (and only if B's dependencies are met).
-4. Research is not synced: A completes a research quest; B stays incomplete; research points stay separate.
-5. Offline: B logs in after A completed quests; non-research quests sync at login.
-6. Joining a party: both players' completed non-research quests merge; research does not.
-7. `/issresearch sync` works; with `ftb_solo_quests` installed, the log says the embedded module is disabled.
-
-### 9.6 Admin and debug commands
-
-Permission level 2 (OP).
-
-| Command | Description |
-|---|---|
-| `/issresearch points get\|add\|set <player> [amount]` | inspect or change research points |
-| `/issresearch report give <player> <spell_id>` | give a research report (spell ids are auto-completed: enabled, craftable ISS spells) |
-| `/issresearch reissue enable\|disable <player> <spell_id>` | toggle reissue for a spell |
-| `/issresearch schools` | list registered ISS schools (id, display colour, spell count) and the model path convention |
-| `/issresearch sync` | sync non-research quests in all online parties; prints the reason if disabled |
-
----
+There is no automated test suite yet. Verify changes with the debug commands in section 2, a dedicated server, and two clients for per-player progress and party sync.
 
 ## 10. License and Third-Party Code
 
