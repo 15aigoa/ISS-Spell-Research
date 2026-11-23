@@ -14,7 +14,8 @@
     "personal.PersonalInventoryListenerMixin"
   ],
   "client": [
-    "ScrollForgeScreenMixin"
+    "ScrollForgeScreenMixin",
+    "QuestDisplayMixin"
   ],
   "injectors": {
     "defaultRequire": 1

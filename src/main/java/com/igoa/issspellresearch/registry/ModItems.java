@@ -20,7 +20,7 @@ public final class ModItems {
             DeferredRegister.create(ForgeRegistries.ITEMS, IssSpellResearch.MODID);
 
     public static final RegistryObject<Item> RESEARCH_REPORT = ITEMS.register("research_report",
-            () -> new ResearchReportItem(new Item.Properties().durability(ResearchReportItem.MAX_USES)));
+            () -> new ResearchReportItem(new Item.Properties().durability(ResearchReportItem.DEFAULT_MAX_USES)));
 
     public static final RegistryObject<Item> RESEARCH_TABLE = ITEMS.register("research_table",
             () -> new BlockItem(ModBlocks.RESEARCH_TABLE.get(), new Item.Properties()));

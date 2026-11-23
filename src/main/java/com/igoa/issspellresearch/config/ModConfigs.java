@@ -11,6 +11,8 @@ public final class ModConfigs {
     public static final ForgeConfigSpec.DoubleValue LEVEL_BASE;
     public static final ForgeConfigSpec.DoubleValue MULTIPLIER;
     public static final ForgeConfigSpec.BooleanValue PERSONAL_PROGRESS_ENABLED;
+    public static final ForgeConfigSpec.IntValue REPORT_MAX_USES;
+    public static final ForgeConfigSpec.BooleanValue QUEST_USES_SPELL_DISPLAY;
     public static final ForgeConfigSpec.BooleanValue AUTO_SYNC_ENABLED;
     public static final ForgeConfigSpec.BooleanValue AUTO_SYNC_DEDICATED_ONLY;
 
@@ -39,6 +41,19 @@ public final class ModConfigs {
                 .define("enabled", true);
         AUTO_SYNC_DEDICATED_ONLY = b.comment("If true, the sync only runs on dedicated servers (it is off in single player / LAN worlds).")
                 .define("dedicatedServerOnly", false);
+        b.pop();
+
+        b.comment("Research reports").push("research");
+        REPORT_MAX_USES = b.comment("How many scrolls one research report can craft before it is used up.",
+                        "Applied when a report is created. Reports that already exist keep the value they were created with.",
+                        "Reports created before this value was stored use the current value.")
+                .defineInRange("reportMaxUses", 5, 1, 1000);
+        b.pop();
+
+        b.comment("Display options (client side)").push("display");
+        QUEST_USES_SPELL_DISPLAY = b.comment("Use the spell's name and icon as the default title and icon of quests that have a research report reward.",
+                        "Quests with a custom title or icon, and quests without a research report reward, are not affected.")
+                .define("questUsesSpellDisplay", true);
         b.pop();
 
         SPEC = b.build();

@@ -14,7 +14,7 @@ ISS Spell Research (`issspell_research`) is a Forge 1.20.1 mod that lets players
 ## 2. Features
 
 - **Research points** – a per-player currency. Convert enchanted books into points (up to 12 books at once) and spend them through an FTB Quests task.
-- **Research reports** – an item that records one spell. It works like a license: each use of the Scroll Forge costs 1 of its 5 durability. Its colour (or texture) follows the spell's school.
+- **Research reports** – an item that records one spell. It works like a license: each use of the Scroll Forge costs one of its uses. A report has five uses by default. Its colour (or texture) follows the spell's school.
 - **Research table** – a block with two tabs: convert books to points / reissue reports (searchable by name and school).
 - **Scroll Forge integration** – the ISS Scroll Forge only crafts scrolls from paper + ink + a research report. School focuses are no longer used.
 - **Optional per-player quest progress** (off by default) – with automatic party sync for non-research quests.
@@ -24,7 +24,7 @@ ISS Spell Research (`issspell_research`) is a Forge 1.20.1 mod that lets players
 1. Put enchanted books in the research table and convert them into research points.
 2. Open the research chapter (a hidden FTB Quests chapter) from the table and complete a research node (a quest), for example by paying research points.
 3. Completing the quest automatically grants a **research report** for the researched spell. A single reward, *Research Complete*, can also enable reissue for it.
-4. Put paper, ink, and the report into the ISS Scroll Forge and craft the scroll. The report loses 1 durability per craft.
+4. Put paper, ink, and the report into the ISS Scroll Forge and craft the scroll. The report loses one use per craft.
 5. When a report is used up, reissue it at the research table for a material cost (if the quest also enabled reissue for that research).
 
 ## 4. Requirements and Installation
@@ -45,6 +45,8 @@ Config file: `config/issspell_research-common.toml` (created on first launch).
 | Key | Default | Description |
 |---|---|---|
 | `[personalProgress] enabled` | `false` | Make **all** FTB Quests progress per-player instead of per-team. Read at startup – **restart required**. |
+| `[research] reportMaxUses` | `5` | Scrolls one research report can craft. Applies when a report is created. |
+| `[display] questUsesSpellDisplay` | `true` | Shows the spell's name and icon for research quests. |
 | `[autoSync] enabled` | `true` | With per-player progress on, sync completed non-research quests inside a party. |
 | `[conversion] levelBase`, `multiplier` | `2.0`, `1.0` | Enchanted book → research point conversion. |
 
@@ -58,8 +60,8 @@ Config file: `config/issspell_research-common.toml` (created on first launch).
 
 - Detailed specifications → [`DEVELOPMENT.md`](DEVELOPMENT.md#4-feature-implementation)
 - Data packs (reissue costs, school textures) → [`DEVELOPMENT.md`](DEVELOPMENT.md#45-reissue-costs-and-data-packs)
-- Commands → [`DEVELOPMENT.md`](DEVELOPMENT.md#96-admin-and-debug-commands)
-- Development setup, build, and testing → [`DEVELOPMENT.md`](DEVELOPMENT.md#2-build-run-and-test)
+- Commands → [`DEVELOPMENT.md`](DEVELOPMENT.md#debug-commands)
+- Development setup, build, and testing → [`DEVELOPMENT.md`](DEVELOPMENT.md#2-build-run-and-debug)
 
 ## 7. License and Credits
 
@@ -82,7 +84,7 @@ ISS Spell Research (`issspell_research`) は、**Iron's Spells 'n Spellbooks の
 ## 2. 主な機能
 
 - **研究ポイント** – プレイヤーごとの通貨。エンチャント本を(最大12冊まとめて)ポイントに変換し、FTB Questsのタスクで消費します。
-- **研究レポート** – 魔法を1つ記録したアイテム。免許のように、スクロールフォージで作るたびに、耐久5のうち1を消費します。見た目は、魔法の学派の色(またはテクスチャ)になります。
+- **研究レポート** – 魔法を1つ記録したアイテム。免許のように、スクロールフォージで作るたびに、使用回数を1消費します。既定の使用回数は5です。見た目は、魔法の学派の色(またはテクスチャ)になります。
 - **研究テーブル** – タブが2つあるブロック。本をポイントに変換 / レポートの再発行(名前・学派で検索)。
 - **スクロールフォージ連携** – ISSのスクロールフォージは、紙・インク・研究レポートでだけ、スクロールを作れます。学派フォーカスは使いません。
 - **個人別のクエスト進行(オプション・既定はオフ)** – 研究以外のクエストを、パーティ内で自動同期します。
@@ -92,7 +94,7 @@ ISS Spell Research (`issspell_research`) は、**Iron's Spells 'n Spellbooks の
 1. 研究テーブルにエンチャント本を入れて、研究ポイントに変換します。
 2. テーブルから、研究チャプター(非表示のFTB Questsのチャプター)を開き、研究ノード(クエスト)を達成します。例: 研究ポイントを納品します。
 3. クエストが完了すると、その魔法の**研究レポート**が、自動で渡されます。報酬「研究完了」を1つ付けるだけで、再発行の有効化も同時に行えます。
-4. ISSのスクロールフォージに、紙・インク・レポートを入れて、スクロールを作ります。作るたびに、レポートの耐久が1減ります。
+4. ISSのスクロールフォージに、紙・インク・レポートを入れて、スクロールを作ります。作るたびに、レポートの使用回数が1減ります。
 5. レポートを使い切ったら、研究テーブルで、素材を払って再発行します(そのクエストが、再発行を有効にしている場合)。
 
 ## 4. 動作要件・導入
@@ -113,6 +115,8 @@ ISS Spell Research (`issspell_research`) は、**Iron's Spells 'n Spellbooks の
 | キー | 既定 | 内容 |
 |---|---|---|
 | `[personalProgress] enabled` | `false` | FTB Questsの**すべての**クエストの進行を、チームではなくプレイヤーごとにします。起動時に読むため、**変更後は再起動が必要**です。 |
+| `[research] reportMaxUses` | `5` | 研究レポート1枚で作れるスクロールの数です。レポートの作成時に適用されます。 |
+| `[display] questUsesSpellDisplay` | `true` | 研究クエストに、魔法の名前とアイコンを表示します。 |
 | `[autoSync] enabled` | `true` | 個人別進行がオンのとき、研究以外のクエストの完了を、パーティ内で同期します。 |
 | `[conversion] levelBase`, `multiplier` | `2.0`, `1.0` | エンチャント本から研究ポイントへの換算。 |
 
@@ -126,8 +130,8 @@ ISS Spell Research (`issspell_research`) は、**Iron's Spells 'n Spellbooks の
 
 - 詳細仕様 → [`DEVELOPMENT.md`](DEVELOPMENT.md#4-feature-implementation) (英語)
 - データパック(再発行の素材、学派別テクスチャ) → [`DEVELOPMENT.md`](DEVELOPMENT.md#45-reissue-costs-and-data-packs) (英語)
-- コマンド → [`DEVELOPMENT.md`](DEVELOPMENT.md#96-admin-and-debug-commands) (英語)
-- 開発環境・ビルド・テスト → [`DEVELOPMENT.md`](DEVELOPMENT.md#2-build-run-and-test) (英語)
+- コマンド → [`DEVELOPMENT.md`](DEVELOPMENT.md#debug-commands) (英語)
+- 開発環境・ビルド・テスト → [`DEVELOPMENT.md`](DEVELOPMENT.md#2-build-run-and-debug) (英語)
 
 ## 7. ライセンス・クレジット
 

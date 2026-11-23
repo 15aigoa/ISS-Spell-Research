@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 package com.igoa.issspellresearch.quest;
 
+import com.igoa.issspellresearch.client.SpellDisplay;
 import com.igoa.issspellresearch.data.ResearchUnlockData;
 import dev.ftb.mods.ftbquests.quest.Quest;
 import dev.ftb.mods.ftbquests.quest.reward.RewardType;
@@ -42,6 +43,6 @@ public class ResearchCompleteReward extends ResearchReportReward {
     @Override
     @OnlyIn(Dist.CLIENT)
     public Component getAltTitle() {
-        return Component.translatable("issspell_research.reward.research_complete.title", spell.isEmpty() ? "-" : spell);
+        return Component.translatable("issspell_research.reward.research_complete.title", SpellDisplay.nameOf(spell));
     }
 }

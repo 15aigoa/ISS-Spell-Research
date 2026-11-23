@@ -8,14 +8,8 @@ import dev.ftb.mods.ftbquests.quest.ServerQuestFile;
 import com.igoa.issspellresearch.registry.ModItems;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import io.redspace.ironsspellbooks.api.registry.SchoolRegistry;
 import io.redspace.ironsspellbooks.api.registry.SpellRegistry;
-import io.redspace.ironsspellbooks.api.spells.SchoolType;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.network.chat.TextColor;
 import com.mojang.brigadier.arguments.LongArgumentType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -33,7 +27,6 @@ import net.minecraftforge.items.ItemHandlerHelper;
  *  /issresearch points get|add|set <player> [amount]
  *  /issresearch report give <player> <spell_id>
  *  /issresearch sync  (オンラインのパーティで、研究以外のクエストの完了を同期する)
- *  /issresearch schools  (登録されている魔法の学派の一覧。他MODが追加した学派も含む)
  *  /issresearch reissue enable|disable <player> <spell_id>  (再発行の有効化を、コマンドで切り替える。検証用)
  */
 public final class ResearchCommands {
@@ -90,27 +83,8 @@ public final class ResearchCommands {
                                                 .executes(ctx -> setReissue(ctx.getSource(),
                                                         EntityArgument.getPlayer(ctx, "player"),
                                                         ResourceLocationArgument.getId(ctx, "spell"), false))))))
-                .then(Commands.literal("schools")
-                        .executes(ctx -> schools(ctx.getSource())))
                 .then(Commands.literal("sync")
                         .executes(ctx -> sync(ctx.getSource()))));
-    }
-
-    /** 登録されている学派の一覧(ID・表示色・魔法の数)。研究レポートの学派別テクスチャの対象を、実行時の正確な情報で確認するために使う。 */
-    private static int schools(CommandSourceStack src) {
-        var registry = SchoolRegistry.REGISTRY.get();
-        List<ResourceLocation> ids = new ArrayList<>(registry.getKeys());
-        ids.sort(Comparator.comparing(ResourceLocation::toString));
-        src.sendSuccess(() -> Component.literal("登録されている学派: " + ids.size() + " 件"), false);
-        for (ResourceLocation id : ids) {
-            SchoolType school = registry.getValue(id);
-            TextColor color = school.getDisplayName().getStyle().getColor();
-            String hex = color == null ? "-" : String.format("#%06X", color.getValue());
-            int spells = SpellRegistry.getSpellsForSchool(school).size();
-            src.sendSuccess(() -> Component.literal(" - " + id + "   色 " + hex + "   魔法 " + spells + " 個"), false);
-        }
-        src.sendSuccess(() -> Component.literal("モデルの置き場: assets/<任意の名前空間>/models/item/research_report_schools/<学派の名前空間>/<学派のパス>.json"), false);
-        return ids.size();
     }
 
     private static int setReissue(CommandSourceStack src, ServerPlayer target, ResourceLocation spell, boolean enable) {

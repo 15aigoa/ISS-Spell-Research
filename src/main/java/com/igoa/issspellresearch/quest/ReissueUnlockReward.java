@@ -2,6 +2,7 @@
 package com.igoa.issspellresearch.quest;
 
 import com.igoa.issspellresearch.IssSpellResearch;
+import com.igoa.issspellresearch.client.SpellDisplay;
 import com.igoa.issspellresearch.client.SpellIdConfigs;
 import com.igoa.issspellresearch.data.ResearchUnlockData;
 import com.igoa.issspellresearch.registry.ModItems;
@@ -92,6 +93,10 @@ public class ReissueUnlockReward extends Reward {
     @Override
     @OnlyIn(Dist.CLIENT)
     public Icon getAltIcon() {
+        Icon spellIcon = SpellDisplay.iconOf(spell);
+        if (spellIcon != null) {
+            return spellIcon;
+        }
         ResourceLocation id = ResourceLocation.tryParse(spell);
         if (id == null) {
             return super.getAltIcon();
@@ -102,6 +107,6 @@ public class ReissueUnlockReward extends Reward {
     @Override
     @OnlyIn(Dist.CLIENT)
     public Component getAltTitle() {
-        return Component.translatable("issspell_research.reward.reissue_unlock.title", spell.isEmpty() ? "-" : spell);
+        return Component.translatable("issspell_research.reward.reissue_unlock.title", SpellDisplay.nameOf(spell));
     }
 }

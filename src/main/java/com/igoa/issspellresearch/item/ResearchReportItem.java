@@ -14,10 +14,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import com.igoa.issspellresearch.config.ModConfigs;
 import net.minecraft.world.level.Level;
 
 /**
- * 研究レポート。解禁する魔法のID(文字列)をNBTのリストで持つ。耐久度式で、MAX_USES回までスクロール製造に使える。
+ * 研究レポート。解禁する魔法のID(文字列)をNBTのリストで持つ。耐久度式で、使用回数（既定5、configで変更可）までスクロール製造に使える。
  * 今は1つだけ使うが、リスト形式で持つので、後から「1レポート=複数魔法」に広げられる。
  * NBT例: {Spells:["irons_spellbooks:fireball"]}
  */
@@ -25,7 +26,10 @@ public class ResearchReportItem extends Item {
     public static final String TAG_SPELLS = "Spells";
 
     /** スクロールを作れる回数(耐久値)。 */
-    public static final int MAX_USES = 5;
+    public static final int DEFAULT_MAX_USES = 5;
+
+    /** 作成時の使用回数を保存するNBTのキー。クライアントにも同期されるので、表示と実際の上限が一致する。 */
+    public static final String TAG_MAX_USES = "MaxUses";
 
     public ResearchReportItem(Properties properties) {
         super(properties);
@@ -38,6 +42,7 @@ public class ResearchReportItem extends Item {
             list.add(StringTag.valueOf(id.toString()));
         }
         stack.getOrCreateTag().put(TAG_SPELLS, list);
+        stack.getOrCreateTag().putInt(TAG_MAX_USES, ModConfigs.REPORT_MAX_USES.get());
         return stack;
     }
 
@@ -85,6 +90,19 @@ public class ResearchReportItem extends Item {
         } else {
             stack.setDamageValue(damage);
         }
+    }
+
+    /**
+     * 使用回数の上限。作成時にNBTへ保存された値を使い、無ければconfigの値を使う。
+     * (レジストリ登録時の durability は、判定を有効にするための最小限の値で、ここが実際の上限になる)
+     */
+    @Override
+    public int getMaxDamage(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        if (tag != null && tag.contains(TAG_MAX_USES, Tag.TAG_INT)) {
+            return Math.max(1, tag.getInt(TAG_MAX_USES));
+        }
+        return ModConfigs.REPORT_MAX_USES.get();
     }
 
     /** 金床・砥石などでの耐久回復(=使用回数の回復)を防ぐ。 */

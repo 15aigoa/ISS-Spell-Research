@@ -91,7 +91,7 @@ public final class ReportModelSetup {
         for (ResourceLocation schoolId : SCHOOL_MODELS.keySet()) {
             if (!registry.containsKey(schoolId)) {
                 LOGGER.warn("[issspell_research] 学派別モデル {} の学派IDは、登録されていません。綴りが違うか、そのMODが入っていません。"
-                        + " (/issresearch schools で確認してください)", schoolId);
+                        + " (ISSの学派IDを確認してください)", schoolId);
             }
         }
         List<ResourceLocation> tinted = new ArrayList<>();

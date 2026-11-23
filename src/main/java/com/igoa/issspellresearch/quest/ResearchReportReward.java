@@ -2,6 +2,7 @@
 package com.igoa.issspellresearch.quest;
 
 import com.igoa.issspellresearch.IssSpellResearch;
+import com.igoa.issspellresearch.client.SpellDisplay;
 import com.igoa.issspellresearch.client.SpellIdConfigs;
 import com.igoa.issspellresearch.registry.ModItems;
 import dev.ftb.mods.ftblibrary.config.ConfigGroup;
@@ -73,6 +74,11 @@ public class ResearchReportReward extends Reward {
         SpellIdConfigs.addSpellChooser(config, "spell", spell, v -> spell = v);
     }
 
+    /** 設定されている魔法ID(例: irons_spellbooks:fireball)。 */
+    public String getSpellId() {
+        return spell;
+    }
+
     @Override
     public void claim(ServerPlayer player, boolean notify) {
         ResourceLocation id = ResourceLocation.tryParse(spell);
@@ -91,6 +97,11 @@ public class ResearchReportReward extends Reward {
     @Override
     @OnlyIn(Dist.CLIENT)
     public Icon getAltIcon() {
+        // 魔法本体のアイコン。魔法が見つからないときは、研究レポートのアイコン
+        Icon spellIcon = SpellDisplay.iconOf(spell);
+        if (spellIcon != null) {
+            return spellIcon;
+        }
         ResourceLocation id = ResourceLocation.tryParse(spell);
         if (id == null) {
             return super.getAltIcon();
@@ -101,7 +112,6 @@ public class ResearchReportReward extends Reward {
     @Override
     @OnlyIn(Dist.CLIENT)
     public Component getAltTitle() {
-        return Component.translatable("issspell_research.reward.research_report.title",
-                spell.isEmpty() ? "-" : spell);
+        return Component.translatable("issspell_research.reward.research_report.title", SpellDisplay.nameOf(spell));
     }
 }

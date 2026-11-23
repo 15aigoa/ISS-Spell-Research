@@ -6,6 +6,7 @@ import com.igoa.issspellresearch.registry.ModItems;
 import com.igoa.issspellresearch.reissue.ReissueEntry;
 import com.igoa.issspellresearch.reissue.ReissueRequirement;
 import dev.ftb.mods.ftbquests.quest.Chapter;
+import io.redspace.ironsspellbooks.api.registry.SchoolRegistry;
 import io.redspace.ironsspellbooks.api.registry.SpellRegistry;
 import io.redspace.ironsspellbooks.api.spells.AbstractSpell;
 import java.util.ArrayList;
@@ -53,8 +54,21 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     private static final int COST_Y = 112;
 
     private final ItemStack pointsTabIcon = new ItemStack(Items.ENCHANTED_BOOK);
-    /** 魔法のデータがない研究レポート = 既定の紫色。 */
-    private final ItemStack reissueTabIcon = new ItemStack(ModItems.RESEARCH_REPORT.get());
+    /** 再発行タブのアイコン: 学派が evocation の研究レポート。見つからなければ既定の紫色。 */
+    private final ItemStack reissueTabIcon = evocationReportIcon();
+
+    /**
+     * evocation の学派の魔法を1つ記録した研究レポート。学派の見た目は、記録された魔法の学派で決まるため、
+     * 魔法IDを決め打ちせず、登録されている魔法から選ぶ(並び順が安定するよう、IDの最小のものを使う)。
+     */
+    private static ItemStack evocationReportIcon() {
+        return SpellRegistry.getEnabledSpells().stream()
+                .filter(spell -> !spell.equals(SpellRegistry.none()) && spell.allowCrafting())
+                .filter(spell -> SchoolRegistry.EVOCATION_RESOURCE.equals(spell.getSchoolType().getId()))
+                .min(Comparator.comparing(spell -> spell.getSpellResource().toString()))
+                .map(spell -> ModItems.createReport(spell.getSpellResource()))
+                .orElseGet(() -> new ItemStack(ModItems.RESEARCH_REPORT.get()));
+    }
 
     private List<Chapter> chapters = List.of();
 

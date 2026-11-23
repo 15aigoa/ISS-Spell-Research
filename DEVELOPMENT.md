@@ -95,7 +95,6 @@ Permission level 2 (OP). Spell ids are auto-completed.
 | `/issresearch points get\|add\|set <player> [amount]` | inspect or change research points |
 | `/issresearch report give <player> <spell_id>` | give a research report |
 | `/issresearch reissue enable\|disable <player> <spell_id>` | toggle reissue for a spell |
-| `/issresearch schools` | list registered ISS schools (id, colour, spell count) |
 | `/issresearch sync` | sync non-research quests in online parties; prints the reason if disabled |
 
 ## 3. Architecture and Package Layout
@@ -106,14 +105,14 @@ com.igoa.issspellresearch
 ├─ registry/               ModBlocks, ModItems, ModMenus (DeferredRegister)
 ├─ block/                  ResearchTableBlock (opens the menu)
 ├─ menu/                   ResearchTableMenu (slots, point balance, button actions)
-├─ item/                   ResearchReportItem (NBT, durability)
+├─ item/                   ResearchReportItem (NBT, use limit stored per item)
 ├─ data/                   ResearchPointsData, ResearchUnlockData (SavedData)
-├─ quest/                  FTB Quests task/reward types, research-chapter detection
+├─ quest/                  FTB Quests task/reward types (incl. combined reward), research-chapter detection
 ├─ reissue/                reissue costs (data pack), validation, execution
 ├─ personal/               PersonalMode, TeamAutoSync (per-player progress support)
-├─ mixin/                  ISS Scroll Forge mixins + mixin plugin
+├─ mixin/                  ISS Scroll Forge mixins, FTB Quests display mixin, mixin plugin
 │  └─ personal/            FTB Quests per-player progress mixins (opt-in)
-├─ client/                 screen, report models/tint, research-chapter opener
+├─ client/                 screens, report models and tint, spell display and chooser, research-chapter opener
 ├─ command/ config/ util/  admin commands, ForgeConfigSpec, enchant-point calculator
 ```
 
@@ -145,7 +144,7 @@ books --(table menu)--> ResearchPointsData --(ResearchPointsTask in FTB Quests)-
 
 ### 4.2 Research report item
 
-- `issspell_research:research_report`, `Item.Properties().durability(MAX_USES)` with `MAX_USES = 5`.
+- `issspell_research:research_report` is registered with `durability(DEFAULT_MAX_USES)` (5). That value only enables damage handling; the real limit comes from `getMaxDamage`, which reads the `MaxUses` tag written at creation and falls back to `[research] reportMaxUses`. Storing the limit on the stack keeps the client bar and the server limit in agreement. Changing the config affects only reports created afterwards.
 - NBT: `{Spells: ["<spell id>", ...]}`. The data structure is a list, but **the design is one spell per report**.
 - `ResearchReportItem.consumeUse(stack)`: `damage + 1 >= maxDamage` → `shrink(1)`; else `setDamageValue`. It uses no randomness so the client and server agree (Unbreaking does not apply).
 - `isRepairable` and `isBookEnchantable` return `false` (no durability recovery via anvil, grindstone, or Mending).
@@ -163,7 +162,7 @@ books --(table menu)--> ResearchPointsData --(ResearchPointsTask in FTB Quests)-
 - **Screen** (`ResearchTableScreen`, 176 × 222, no texture files):
   - Tabs are drawn on the **left side** of the main panel like creative-inventory tabs. They sit outside `imageWidth`, so `hasClickedOutside` is overridden (otherwise a tab click would drop the carried item).
   - Tab 1 (enchanted-book icon): book slots, convert button, up to 3 research-chapter buttons (`ResearchChapterFinder`).
-  - Tab 2 (research-report icon): search box (space-separated tokens, all must match the spell name, school name, or id), scrollable list sorted by school then name, cost row with item icons (red count = missing), and the reissue button. Slot clicks and shift-clicks are ignored on this tab.
+  - Tab 2 (evocation research-report icon): search box (space-separated tokens, all must match the spell name, school name, or id), scrollable list sorted by school then name, cost row with item icons (red count = missing), and the reissue button. Slot clicks and shift-clicks are ignored on this tab.
 - **Point balance** is sent through four `DataSlot`s (16 bits each) and reassembled on the client.
 
 ### 4.4 FTB Quests tasks and rewards
@@ -178,6 +177,7 @@ books --(table menu)--> ResearchPointsData --(ResearchPointsTask in FTB Quests)-
 - Registered with `TaskTypes.register` / `RewardTypes.register` inside `FMLCommonSetupEvent#enqueueWork`. **`FMLCommonSetupEvent` handlers of different mods run in parallel**, and Architectury / FTB Quests registries are not thread-safe; registering off-thread was observed to corrupt Architectury's internal map and break login (`ArrayIndexOutOfBoundsException` in `NetworkManagerImpl.sendSyncPacket`).
 - **Combined reward**: `ResearchCompleteReward extends ResearchReportReward`. `claim` gives the report (`super.claim`) and then calls `ResearchUnlockData.enableReissue`. Because it extends `ResearchReportReward`, the `instanceof ResearchReportReward` checks that define a research chapter (`ResearchChapters`, `ResearchChapterFinder`) cover it without changes. Use one `research_complete` reward instead of a `research_report` plus a `reissue_unlock`.
 - **Spell id chooser in the quest editor**: `SpellIdConfigs.addSpellChooser` (client only) replaces the free-text field of the three spell rewards. It builds a `NameMap<String>` of the enabled, craftable ISS spells (icon from `AbstractSpell.getSpellIconResource()`, label = name + id + school) and registers it with `ConfigGroup.addEnum`. FTB Library's `EnumConfig` opens a searchable selection screen when there are more than 16 values, so the field is searchable by name, id, or school. The stored value is still the spell id string; an id that is not in the list (for example a mod that was removed) is kept and shown in red.
+- **Display of spells in FTB Quests** (`client/SpellDisplay`): the three spell rewards use the spell's own icon (`AbstractSpell.getSpellIconResource()`) and its localized name for `getAltIcon` / `getAltTitle`, falling back to the report item icon / the raw id if the spell is not registered. FTB Quests derives a quest's default title from its **first task** and its default icon from its **tasks**, never from rewards, so `QuestDisplayMixin` (client, section 5) overrides `Quest.getAltTitle` / `getAltIcon` for quests that have a research report reward. A title or icon set by hand in the editor still wins. It can be turned off with `[display] questUsesSpellDisplay = false`.
 - Task/reward serialization follows FTB Quests' own pattern (`writeData`/`readData` for NBT, `writeNetData`/`readNetData` for the network, `fillConfigGroup` for the editor).
 - **Research chapter** = a chapter containing at least one quest with a `ResearchReportReward` (`ResearchChapters`). No configuration needed. Setting the chapter to "always invisible" hides it from the quest book list and makes FTB Quests auto-claim its rewards.
 - The table opens a chapter with `ClientQuestFile.openBookToQuestObject(chapter.id)`. This is unavailable if the pack disables the quest GUI (`disable_gui`).
@@ -214,7 +214,7 @@ Resolution order: per-spell file → `default.json` → built-in default (10 × 
 - **Per-school models** (optional, no code needed): place
   `assets/<any namespace>/models/item/research_report_schools/<school namespace>/<school path>.json`
   (e.g. `.../irons_spellbooks/fire.json` for `irons_spellbooks:fire`). `ReportModelSetup` lists these resources in `ModelEvent.RegisterAdditional`, and `ModelEvent.ModifyBakingResult` wraps the report's baked model in `ResearchReportBakedModel` (a `BakedModelWrapper` whose `ItemOverrides` picks the school model by the recorded spell, else the default). Schools without a model keep the tint model.
-- Find the exact school ids of the current pack with `/issresearch schools` (it reads ISS's school registry at runtime, including schools added by other mods).
+- The startup log lists the schools that have no dedicated model (`[issspell_research] 専用モデルがなく...`) and warns about school ids that ISS does not register. Use those lines, or the school ids in the ISS sources, to find the ids of the current pack.
 - Reload resources with `F3 + T` after adding models.
 
 ### 4.7 Scroll Forge changes
@@ -238,6 +238,7 @@ Config: `issspell_research.mixins.json`, `"defaultRequire": 1` (a missing target
 | `ScrollForgeResultSlotMixin` | ISS `ScrollForgeMenu$4.onTake` | redirect the 3rd `Slot.remove(I)` (ordinal 2) → report durability |
 | `ScrollForgeMenuMixin` | ISS `ScrollForgeMenu.setupResultSlot` | replace result calculation (HEAD, cancel) |
 | `ScrollForgeScreenMixin` (client) | ISS `ScrollForgeScreen.generateSpellList`, `menuSlotsChanged` | list from report; redirect `ItemStack.is(TagKey)` and `Stream.toList()` |
+| `QuestDisplayMixin` (client) | FTB Quests `Quest.getAltTitle`, `Quest.getAltIcon` | default quest title / icon from the spell of its research report reward; `require = 0`, so a missing target only skips the change |
 | `personal.PersonalBaseQuestFileMixin` | FTB Quests `BaseQuestFile.getOrCreateTeamData(Entity)` | key by player UUID (server file only) |
 | `personal.PersonalServerQuestFileMixin` | FTB Quests `ServerQuestFile.playerLoggedIn / playerChangedTeam / teamCreated / isPlayerOnTeam` | per-player login, team change, party creation, ownership |
 | `personal.PersonalInventoryListenerMixin` | FTB Quests `FTBQuestsInventoryListener.detect` | task detection with per-player data (copy of 2001.4.22's `detect`) |
@@ -256,7 +257,7 @@ Config: `issspell_research.mixins.json`, `"defaultRequire": 1` (a missing target
 | Dependency | Fragile points |
 |---|---|
 | ISS | anonymous class numbering (`$3`, `$4`); private methods `setupResultSlot`, `generateSpellList`, `menuSlotsChanged`; private fields (`inkSlot`, `blankScrollSlot`, `focusSlot`, `resultSlot`, `spellRecipeSelection`, `oldMenuSlots`); the order of `Slot.remove` calls in `onTake`; the `INVOKE` targets inside `generateSpellList`; spell/school registries and `AbstractSpell` accessors |
-| FTB Quests | all `personal.*` targets above; `detect` body equivalence; `ObjectCompletedEvent` (an `EventActor`); `TaskTypes`/`RewardTypes` registration; `ClientQuestFile.openBookToQuestObject`; `TeamData` methods used by `TeamAutoSync` |
+| FTB Quests | all `personal.*` targets above; `Quest.getAltTitle` / `getAltIcon` (cosmetic, non-fatal); `detect` body equivalence; `ObjectCompletedEvent` (an `EventActor`); `TaskTypes`/`RewardTypes` registration; `ClientQuestFile.openBookToQuestObject`; `TeamData` methods used by `TeamAutoSync` |
 | FTB Teams | `FTBTeamsAPI`, `Team.getMembers`, team events used in the mixins |
 
 ---
